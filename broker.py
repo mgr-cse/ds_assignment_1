@@ -25,10 +25,6 @@ class Consumers:
 
 app = Flask(__name__)
 
-@app.route('/')
-def hello():
-    return 'Hello, Distributed Queue!'
-
 @app.route('/topics', methods=['POST'])
 def topic_register_request():
     content_type = request.headers.get('Content-Type')
@@ -168,6 +164,130 @@ def consumer_register_request():
             "status": "failure",
             "message": "Content-Type not supported!" 
         }
+    
+@app.route('/producer/produce',methods=['POST'])
+def producer_enqueue():
+    content_type = request.headers.get('Content-Type')
+    if content_type == 'application/json':
+        receive = request.json
+        try:
+            topic = receive['topic']
+            producer_id = receive['producer_id']
+            message = receive['message']
+
+            global producers
+            if producer_id not in producers.topics:
+                return {
+                    "status": "failure",
+                    "message": "producer_id does not exist"
+                }
+            if producers.topics[producer_id] != topic:
+                return {
+                    "status": "failure",
+                    "message": "topic does not match for given producer_id"
+                }
+            
+            # lock queue for requested topic
+            with queues[topic].lock:
+                queues[topic].messages.append(message)
+            
+            return {
+                "status": "success"
+            }
+        except:
+            return {
+                "status": "failure",
+                "message": "error while parsing request"
+            }
+    else:
+        return {
+            "status": "failure",
+            "message": "Content-Type not supported!" 
+        }
+
+@app.route('/consumer/consume',methods=['GET'])
+def consumer_dequeue():   
+    try:
+        topic = request.args.get('topic')
+        consumer_id = request.args.get('consumer_id')
+        consumer_id = int(consumer_id)
+        print('here1')
+        
+        global consumers
+        if consumer_id not in consumers.topics:
+            return {
+                "status": "failure",
+                "message": "consumer_id does not exist"
+            }
+        if consumers.topics[consumer_id] != topic:
+            return {
+                "status": "failure",
+                "message": "topic does not match for given consumer_id"
+            }
+        
+        print('here2')
+        # retreive message
+        message = None
+        with consumers.offsets[consumer_id][1]:
+            print('here3')
+            try:
+                message = queues[topic].messages[consumers.offsets[consumer_id][0]]
+                consumers.offsets[consumer_id][0] += 1
+            except:
+                return {
+                    "status": "failure",
+                    "message": "no more logs!"
+                }
+            
+        return {
+            "status": "success",
+            "message": message
+        }
+    except:
+        return {
+            "status": "failure",
+            "message": "error while parsing request"
+        }
+
+@app.route('/size',methods=['GET'])
+def consumer_size():   
+    try:
+        topic = request.args.get('topic')
+        consumer_id = request.args.get('consumer_id')
+        consumer_id = int(consumer_id)
+        print('here1')
+        
+        global consumers
+        if consumer_id not in consumers.topics:
+            return {
+                "status": "failure",
+                "message": "consumer_id does not exist"
+            }
+        if consumers.topics[consumer_id] != topic:
+            return {
+                "status": "failure",
+                "message": "topic does not match for given consumer_id"
+            }
+        
+        messages_left = 0
+        try:
+            messages_left = len(queues[topic].messages) - consumers.offsets[consumer_id][0]
+        except:
+            return {
+                "status": "failure",
+                "message": "an error occured!"
+            }
+        return{
+            "status": "success",
+            "size": messages_left
+        }
+            
+    except:
+        return {
+            "status": "failure",
+            "message": "error while parsing request"
+        }
+
 
 if __name__ == "__main__":
     # queuing data structures
