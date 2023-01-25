@@ -1,8 +1,11 @@
 from flask import Flask
 from flask import request
+import threading
 from threading import Lock
 
+# queue data structures
 
+# queue for each topic
 class TopicQueue:
     def __init__(self, topic_name):
         # each topic queue has its own lock to ensure broker ordering
@@ -10,23 +13,31 @@ class TopicQueue:
         self.messages = []
         self.topic_name = topic_name
 
+# stores producer information
 class Producers:
     def __init__(self):
-        self.count = 0
-        self.lock = Lock()
-        self.topics = dict()
+        self.count = 0       # count for assigning producer_id
+        self.lock = Lock()   # lock for getting producer_id
+        self.topics = dict() # stores topic: producer_id
 
 class Consumers:
     def __init__(self):
-        self.count = 0
-        self.lock = Lock()
-        self.topics = dict()
-        self.offsets = dict()
+        self.count = 0          # count for assigning consumer_id
+        self.lock = Lock()      # lock for getting consumer_id
+        self.topics = dict()    # stores topic: consumer_id
+        self.offsets = dict()   # stores message offset for each consumer_id
 
 app = Flask(__name__)
 
+# debugging functions
+def print_thread_id():
+    print('Request handled by worker thread:', threading.get_native_id())
+
+# functions for handelling each endpoint
+
 @app.route('/topics', methods=['POST'])
 def topic_register_request():
+    print_thread_id()
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':    
         receive = request.json
@@ -63,6 +74,7 @@ def topic_register_request():
 
 @app.route('/topics', methods=['GET'])
 def topic_get_request():
+    print_thread_id()
     topics = []
     try:
         global queues  
@@ -81,6 +93,7 @@ def topic_get_request():
         
 @app.route('/producer/register',methods=['POST'])
 def producer_register_request():
+    print_thread_id()
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':
         receive = request.json
@@ -123,6 +136,7 @@ def producer_register_request():
 
 @app.route('/consumer/register', methods=['POST'])
 def consumer_register_request():
+    print_thread_id()
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':
         receive = request.json
@@ -167,6 +181,7 @@ def consumer_register_request():
     
 @app.route('/producer/produce',methods=['POST'])
 def producer_enqueue():
+    print_thread_id()
     content_type = request.headers.get('Content-Type')
     if content_type == 'application/json':
         receive = request.json
@@ -206,12 +221,12 @@ def producer_enqueue():
         }
 
 @app.route('/consumer/consume',methods=['GET'])
-def consumer_dequeue():   
+def consumer_dequeue():
+    print_thread_id()   
     try:
         topic = request.args.get('topic')
         consumer_id = request.args.get('consumer_id')
         consumer_id = int(consumer_id)
-        print('here1')
         
         global consumers
         if consumer_id not in consumers.topics:
@@ -225,11 +240,9 @@ def consumer_dequeue():
                 "message": "topic does not match for given consumer_id"
             }
         
-        print('here2')
         # retreive message
         message = None
         with consumers.offsets[consumer_id][1]:
-            print('here3')
             try:
                 message = queues[topic].messages[consumers.offsets[consumer_id][0]]
                 consumers.offsets[consumer_id][0] += 1
@@ -250,7 +263,8 @@ def consumer_dequeue():
         }
 
 @app.route('/size',methods=['GET'])
-def consumer_size():   
+def consumer_size():
+    print_thread_id()   
     try:
         topic = request.args.get('topic')
         consumer_id = request.args.get('consumer_id')
