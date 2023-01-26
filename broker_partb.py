@@ -34,3 +34,45 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     topic_id = db.Column(db.Integer, db.ForeignKey('topic.id'))
     message_content = db.Column(db.String(255))
+
+# debugging functions
+def print_thread_id():
+    print('Request handled by worker thread:', threading.get_native_id())
+
+def return_message(status:str, message=None):
+    content = dict()
+    content['status'] = status
+    if message is not None:
+        content['message'] = message
+    return content
+
+# functions for handelling each endpoint
+
+@app.route('/topics', methods=['POST'])
+def topic_register_request():
+    print_thread_id()
+    content_type = request.headers.get('Content-Type')
+    if content_type != 'application/json':
+        return return_message('failure', 'Content-Type not supported')
+
+    # parse content
+    topic_name = None
+    try:
+        receive = request.json
+        topic_name = receive['topic']
+    except:
+        return return_message('failure', 'Error While Parsing json')
+    
+    # database
+    try:
+        if Topic.query.filter_by(name=topic_name).first() is not None:
+            return return_message('failure', 'Topic already exists')  
+        
+        topic = Topic(name=topic_name)
+        db.session.add(topic)
+        db.session.commit()
+    except:
+        db.session.rollback()
+        return return_message('failure', 'Error while querying/comitting to database')
+    
+    return return_message('success', 'topic ' + topic.name + ' created sucessfully')
