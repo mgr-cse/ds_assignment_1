@@ -76,3 +76,16 @@ def topic_register_request():
         return return_message('failure', 'Error while querying/comitting to database')
     
     return return_message('success', 'topic ' + topic.name + ' created sucessfully')
+
+@app.route('/topics', methods=['GET'])
+def topic_get_request():
+    print_thread_id()
+    topics_list = []
+    try:
+        # database
+        topics = Topic.query.all()
+        for t in topics:
+            topics_list.append(t.name)
+        return return_message('success', topics_list)
+    except: 
+        return return_message('failure', 'Error while listing topics')
