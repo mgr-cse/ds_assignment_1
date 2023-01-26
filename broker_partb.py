@@ -150,3 +150,37 @@ def consumer_register_request():
     except:
         db.session.rollback()
         return return_message('Failure','Error while querying/commiting database')
+
+@app.route('/producer/produce',methods=['POST'])
+def producer_enqueue():
+    print_thread_id()
+    content_type = request.headers.get('Content-Type')
+    if content_type != 'application/json':
+        return return_message('failure', 'Content-Type not supported')
+        
+    topic_name = None
+    producer_id = None
+    message_content = None
+    try:
+        receive = request.json
+        topic_name = receive['topic']
+        producer_id = receive['producer_id']
+        message_content = receive['message']
+    except:
+        return return_message('failure', 'Error while parsing request')
+    
+    try:
+        producer = Producer.query.filter_by(id=producer_id).first()
+        if producer is None:
+            return return_message('failure', 'producer_id does not exist')
+        
+        if producer.topic.name != topic_name:
+            return return_message('failure', 'producer_id and topic do not match')
+        
+        message = Message(topic_id=producer.topic.id, message_content=message_content)
+        db.session.add(message)
+        db.session.commit()
+        return return_message('success')
+    except:
+        db.session.rollback()
+        return return_message('Failure','Error while querying/commiting database')
