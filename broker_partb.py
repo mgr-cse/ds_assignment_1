@@ -245,3 +245,10 @@ def consumer_size():
         }
     except:
         return return_message('failure', 'Error while querying/commiting database')
+
+
+if __name__ == "__main__": 
+    # create database
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, threaded=True, processes=1)
