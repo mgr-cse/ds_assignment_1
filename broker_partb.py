@@ -89,3 +89,35 @@ def topic_get_request():
         return return_message('success', topics_list)
     except: 
         return return_message('failure', 'Error while listing topics')
+
+@app.route('/producer/register',methods=['POST'])
+def producer_register_request():
+    print_thread_id()
+    content_type = request.headers.get('Content-Type')
+    if content_type != 'application/json':
+        return return_message('failure', 'Content-Type not supported')
+    
+    # parsing
+    topic_name = None
+    try:
+        receive = request.json
+        topic_name = receive['topic']
+    except:
+        return return_message('failure', 'Error while parsing request')
+        
+    # query
+    try:
+        topic = Topic.query.filter_by(name=topic_name).first()
+        if topic is None:
+            return return_message('failure', 'Topic does not exist')
+
+        producer = Producer(topic_id=topic.id)
+        db.session.add(producer)
+        db.session.commit()
+        return {
+            "status": "success",
+            "producer_id": producer.id
+        }
+    except:
+        db.session.rollback()
+        return return_message('Failure','Error while querying/commiting database')
