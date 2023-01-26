@@ -218,3 +218,30 @@ def consumer_dequeue():
     except:
         return return_message('Failure','Error while querying/commiting database')
 
+@app.route('/size',methods=['GET'])
+def consumer_size():
+    print_thread_id()   
+    topic_name = None
+    consumer_id = None
+    try:
+        topic_name = request.args.get('topic')
+        consumer_id = request.args.get('consumer_id')
+        consumer_id = int(consumer_id)
+    except:
+        return return_message('failure', 'Error while parsing request')
+    
+    try:
+        consumer = Consumer.query.filter_by(id=consumer_id).first()
+        if consumer_id is None:
+            return return_message('failure', 'consumer_id does not exist')
+
+        if consumer.topic.name != topic_name:
+            return return_message('failure', 'consumer_id and topic do not match')
+        # the tuff query
+        messages = Message.query.filter(Message.id > consumer.offset).filter_by(topic_id=consumer.topic.id).count()
+        return {
+            "status": "success",
+            "size": messages
+        }
+    except:
+        return return_message('failure', 'Error while querying/commiting database')
