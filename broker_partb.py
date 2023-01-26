@@ -184,3 +184,37 @@ def producer_enqueue():
     except:
         db.session.rollback()
         return return_message('Failure','Error while querying/commiting database')
+
+@app.route('/consumer/consume',methods=['GET'])
+def consumer_dequeue():
+    print_thread_id()   
+    topic_name = None
+    consumer_id = None
+    try:
+        topic_name = request.args.get('topic')
+        consumer_id = request.args.get('consumer_id')
+        consumer_id = int(consumer_id)
+    except:
+        return return_message('failure', 'Error while parsing request')
+    
+    try:
+        consumer = Consumer.query.filter_by(id=consumer_id).first()
+        if consumer_id is None:
+            return return_message('failure', 'consumer_id does not exist')
+
+        if consumer.topic.name != topic_name:
+            return return_message('failure', 'consumer_id and topic do not match')
+        # the tuff query
+        message = Message.query.filter(Message.id > consumer.offset).filter_by(topic_id=consumer.topic.id).order_by(Message.id.asc()).first()
+        if message is None:
+            return return_message('failure', 'no more messages')
+        
+        consumer.offset = message.id
+        db.session.commit()
+        return {
+            "status": "success",
+            "message": message.message_content
+        }
+    except:
+        return return_message('Failure','Error while querying/commiting database')
+
