@@ -1,7 +1,7 @@
 import requests
 
 
-res = requests.post('http://localhost:5000/topics', json={"topic_name":"lalala"})
+res = requests.post('http://localhost:5000/topics', json={"topic":"lalala"})
 if res.ok:
     try:
         print(res.json())
