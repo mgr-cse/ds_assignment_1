@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # clear database 
-psql --username=mattie --dbname=psqlqueue < clear_database.sql
+#psql --username=mattie --dbname=psqlqueue < clear_database.sql
 
 # creating required topics fot testing
 curl -XPOST "http://localhost:5000/topics" -d '{"topic_name": "T-1"}' -H "Content-Type: application/json"
