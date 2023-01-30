@@ -34,6 +34,7 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     topic_id = db.Column(db.Integer, db.ForeignKey('topic.id'))
     message_content = db.Column(db.String(255))
+    producer_client = db.Column(db.String(255))
 
 # debugging functions
 def print_thread_id():
@@ -148,7 +149,7 @@ def consumer_register_request():
             "consumer_id": consumer.id
         }
     except:
-        db.session.rollback()
+        #db.session.rollback()
         return return_message('Failure','Error while querying/commiting database')
 
 @app.route('/producer/produce',methods=['POST'])
@@ -161,11 +162,13 @@ def producer_enqueue():
     topic_name = None
     producer_id = None
     message_content = None
+    prod_client = None
     try:
         receive = request.json
         topic_name = receive['topic']
         producer_id = receive['producer_id']
         message_content = receive['message']
+        prod_client = receive['prod_client']
     except:
         return return_message('failure', 'Error while parsing request')
     
@@ -177,12 +180,12 @@ def producer_enqueue():
         if producer.topic.name != topic_name:
             return return_message('failure', 'producer_id and topic do not match')
         
-        message = Message(topic_id=producer.topic.id, message_content=message_content)
+        message = Message(topic_id=producer.topic.id, message_content=message_content, producer_client=prod_client)
         db.session.add(message)
         db.session.commit()
         return return_message('success')
     except:
-        db.session.rollback()
+        #db.session.rollback()
         return return_message('Failure','Error while querying/commiting database')
 
 @app.route('/consumer/consume',methods=['GET'])
@@ -210,13 +213,47 @@ def consumer_dequeue():
             return return_message('failure', 'no more messages')
         
         consumer.offset = message.id
-        db.session.commit()
-        return {
-            "status": "success",
-            "message": message.message_content
-        }
+        db_lock = threading.Lock()
+        with db_lock:
+            db.session.commit()
+        
+        with db_lock:
+            return {
+                "status": "success",
+                "message": message.message_content,
+                "offset": message.id
+            }
     except:
         return return_message('Failure','Error while querying/commiting database')
+    
+
+@app.route('/consumer/set_offset',methods=['POST'])
+def consumer_set_offset():
+    print_thread_id()
+    content_type = request.headers.get('Content-Type')
+    if content_type != 'application/json':
+        return return_message('failure', 'Content-Type not supported')
+        
+    consumer_id = None
+    offset = None
+    try:
+        receive = request.json
+        consumer_id = receive['consumer_id']
+        offset = receive['offset']
+    except:
+        return return_message('failure', 'Error while parsing request')
+    
+    try:
+        consumer = Consumer.query.filter_by(id=consumer_id).first()
+        if consumer_id is None:
+            return return_message('failure', 'consumer_id does not exist')
+        
+        consumer.offset = offset
+        db.session.commit()
+        return return_message('success')
+    except:
+        #db.session.rollback()
+        return return_message('Failure','Error while querying/commiting database')    
 
 @app.route('/size',methods=['GET'])
 def consumer_size():
@@ -245,7 +282,24 @@ def consumer_size():
         }
     except:
         return return_message('failure', 'Error while querying/commiting database')
-
+    
+@app.route('/producer/client_size',methods=['GET'])
+def prod_client_size():
+    print_thread_id()
+    prod_client_name = None
+    try:
+        prod_client_name = request.args.get('prod_client')
+    except:
+        return return_message('failure', 'Error while parsing request')
+    
+    try:
+        message_count = Message.query.filter_by(producer_client=prod_client_name).count()
+        return {
+            "status": "success",
+            "count": message_count
+        }
+    except:
+        return return_message('Failure','Error while querying/commiting database')
 
 if __name__ == "__main__": 
     # create database

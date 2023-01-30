@@ -56,3 +56,43 @@ class Producer:
         except:
             self.eprint('Can not make a post request')
         return False
+    
+    def enqueue_with_name(self, topic: str, message: str) -> bool:
+        if topic not in self.ids:
+            self.eprint
+            return False
+        
+        prod_id = self.ids[topic]
+        
+        try:
+            res = requests.post(self.hostname + 'producer/produce', json={"producer_id": prod_id, "topic": topic,"message": message, "prod_client": self.name})
+            if res.ok:
+                try:
+                    response = res.json()
+                    if response['status'] == 'success':
+                        return True  
+                    else: self.eprint(response)
+                except:
+                    self.eprint('Invalid response:', res.text)
+            else:
+                self.eprint('received unexpected responce code', res.status_code)
+        except:
+            self.eprint('Can not make a post request')
+        return False
+    
+    def get_count(self) -> int:
+        try:
+            res = requests.get(self.hostname + 'producer/client_size', params={"prod_client":self.name})
+            if res.ok:
+                try:
+                    response = res.json()
+                    if response['status'] == 'success':
+                        return response['count']
+                except:
+                    self.eprint('Invalid response:', res.text)
+            else:
+                self.eprint('received unexpected responce code', res.status_code)
+        except:
+            self.eprint('Can not make a post request')
+        return -1
+            
