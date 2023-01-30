@@ -2,6 +2,7 @@ from flask import Flask
 from flask import request
 import threading
 from threading import Lock
+import traceback
 
 # queue data structures
 
@@ -52,7 +53,7 @@ def topic_register_request():
     topic_name = None
     try:
         receive = request.json
-        topic_name = receive['topic']
+        topic_name = receive['topic_name']
     except:
         return return_message('failure', 'Error While Parsing json')
     
@@ -178,7 +179,7 @@ def producer_enqueue():
     with queues[topic].lock:
         queues[topic].messages.append(message)
     
-    return return_message('sucess')
+    return return_message('success')
 
 @app.route('/consumer/consume',methods=['GET'])
 def consumer_dequeue():

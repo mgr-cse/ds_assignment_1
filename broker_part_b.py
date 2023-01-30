@@ -59,7 +59,7 @@ def topic_register_request():
     topic_name = None
     try:
         receive = request.json
-        topic_name = receive['topic']
+        topic_name = receive['topic_name']
     except:
         return return_message('failure', 'Error While Parsing json')
     
