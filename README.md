@@ -53,5 +53,13 @@ python broker_part_b.py
 ```
 You may want to crash the broker for part B by sending `SIGINT` (`Ctrl-C`), and run it again.
 
+### Sample test output
+```bash
++++++ Test pass: C-1 messages = Sum of producer messages
++++++ Test pass: C-1 = C-2 for T-1
++++++ Test pass: C-1 = C-3 for T-1
++++++ Test pass: C-1 = C-2 for T-3
++++++ Test pass: C-1 = C-3 for T-3
+```
 
     
