@@ -8,6 +8,7 @@ Distributed Queue assignment
 * `queueSDK` module contains the library implementation for Part C
 * `tests` directory contains testcases to test both `broker_part_a.py` and `broker_part_b.py`
 * `test_asgn1` contains test cases supplied in the assignment statement.
+* `{consumer|producer}_process.py` runs the testcase using Sdk
 
 ## Prerequisites
 The assignment is done using:
@@ -31,7 +32,26 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 ### Setting up database
-
+```bash
+sudo systemctl start postgresql
+sudo -iu postgres psql < create_database.sql
+```
+## Running tests
+* For part A
+```bash
+# run the broker
+python broker_part_a.py
+# in a seperate window run
+./tests/part_a.py
+```
+* similarly for Part B
+```bash
+# run the broker
+python broker_part_b.py
+# in a seperate window run
+./tests/part_b.py
+```
+You may want to crash the broker for part B by sending `SIGINT` (`Ctrl-C`), and run it again.
 
 
     
