@@ -1,4 +1,4 @@
-from producer import Producer
+from queueSDK.producer import Producer
 
 import random
 
@@ -21,12 +21,21 @@ producer = Producer('localhost', 5000, name)
 for t in topics:
     producer.register(t)
 
+# file for logging productions (helpful in verification)
+file = open('tests/log/' + producer.name + '.txt', 'w')
+
+
+print(producer.name, 'Starting...')
 for line in logs:
     tokens = line.strip().split("\t")
     topic = tokens.pop()
     message = '\t'.join(tokens)
     while not producer.enqueue(topic, message):
         # failure... 
+        # keep on quering producer size
         time.sleep(random.uniform(0, max_timeout))
+    file.write(producer.name + ' enqueued ' + message + ' at ' + topic + '\n')
     time.sleep(random.uniform(0, max_timeout))
+
+print(producer.name, 'finished producing!')
     

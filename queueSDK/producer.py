@@ -47,7 +47,6 @@ class Producer:
                 try:
                     response = res.json()
                     if response['status'] == 'success':
-                        print('producer', self.name, 'published successfully')
                         return True  
                     else: self.eprint(response)
                 except:

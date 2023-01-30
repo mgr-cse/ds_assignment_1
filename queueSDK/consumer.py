@@ -46,7 +46,6 @@ class Consumer:
             if res.ok:
                 try:
                     response = res.json()
-                    print(response)
                     if response['status'] == 'success':
                         return response['message'] 
                     else: self.eprint(response['message'])
@@ -61,9 +60,7 @@ class Consumer:
     
     def poll(self, topic: str, timeout: float, poll_time:float, poll_after_error:float ,consume_log=sys.stdout):
         while time.time() < self.last_message_time + timeout:
-            #print(consumer.name, 'wokeup')
             message = self.dequeue(topic)
-            print(message)
             if message == False:
                 time.sleep(poll_after_error)
                 pass
@@ -72,13 +69,15 @@ class Consumer:
                 consume_log.write(message + '\n')
                 time.sleep(poll_time)
             
-    def run(self, timeout: float, log_folder: str, poll_time=0.5, poll_after_error=5):
+    def run(self, timeout: float, poll_time=0.5, poll_after_error=5, log_folder=None):
         topic_threads = []
         files = []
 
         self.last_message_time = time.time()
         for t in self.ids:
-            file = open(log_folder + self.name + '_' + t + '.txt', 'w')
+            file = sys.stdout
+            if log_folder is not None:
+                file = open(log_folder + self.name + '_' + t + '.txt', 'w')
             thread = threading.Thread(target=self.poll, args=[t, timeout, poll_time, poll_after_error, file])
             topic_threads.append(thread)
             files.append(file)
@@ -86,7 +85,9 @@ class Consumer:
         
         for t in topic_threads:
             t.join()
-        for f in files:
-            f.close()
+        print(self.name, ': All threads timed out Stopping')
+        if log_folder is not None:
+            for f in files:
+                f.close()
     
 

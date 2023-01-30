@@ -1,4 +1,4 @@
-from consumer import Consumer
+from queueSDK.consumer import Consumer
 import requests
 
 import sys
@@ -12,12 +12,11 @@ name = sys.argv[1]
 topics = sys.argv[2]
 
 topics = topics.split(',')
-print(topics)
 
 consumer = Consumer('localhost', 5000, name)
 
 for t in topics:
     consumer.register(t)
 
-
-consumer.run(60, 'tests/log/', 0.01)
+print(consumer.name, 'starting...')
+consumer.run(30, 0.01, 5,'tests/log/')
